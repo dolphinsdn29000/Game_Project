@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Chicken Showndown</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { font-family: -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    body { max-width: 760px; margin: 24px auto; padding: 0 16px; }
+    h1 { margin: 0 0 10px 0; }
+    .panel { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    button { padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; }
+    button:active { transform: translateY(1px); }
+    input[type="number"] { width: 80px; padding: 6px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border: 1px solid #e5e5e5; padding: 8px; text-align: center; }
+    .muted { color: #666; }
+    .big { font-size: 1.15rem; ßfont-weight: 600; }
+    #result { min-height: 1.4em; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .payoff { text-align: center; border: 1px dashed #ccc; border-radius: 6px; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Chicken Showndown</h1>
+  <p class="muted">
+    You choose <b>Swerve</b> or <b>Straight</b>. The opponent selects randomly each round.
+  </p>
+
+  <div class="panel">
+    <h3>Payoff matrix (you, opponent):</h3>
+    <div class="grid">
+      <div class="payoff"><b>You Swerve</b> vs <b>Opponent Swerve</b><br>→ <b>(2, 2)</b></div>
+      <div class="payoff"><b>You Swerve</b> vs <b>Opponent Straight</b><br>→ <b>(1, 3)</b></div>
+      <div class="payoff"><b>You Straight</b> vs <b>Opponent Swerve</b><br>→ <b>(3, 1)</b></div>
+      <div class="payoff"><b>You Straight</b> vs <b>Opponent Straight</b><br>→ <b>(-10, -10)</b></div>
+    </div>
+    <p class="muted" style="margin-top:8px">
+      Chicken structure: best is to go Straight when the other Swerve; worst is both Straight (crash).
+    </p>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <label for="pStraight">Opponent Straight probability (%):</label>
+      <input id="pStraight" type="number" min="0" max="100" value="50">
+      <button id="applyP">Apply</button>
+      <span class="muted">Default = 50% Straight, 50% Swerve.</span>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="big">Expected payoff if <u>You Straight</u>: <span id="evStraight">—</span></div>
+    </div>
+    <div class="row">
+      <div class="big">Expected payoff if <u>You Swerve</u>: <span id="evSwerve">—</span></div>
+    </div>
+    <div class="row">
+      <div class="muted" id="bestReply">Best reply: —</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <button id="btnSwerve">Choose: Swerve</button>
+      <button id="btnStraight">Choose: Straight</button>
+      <button id="btnReset" title="Clear scores and history">Reset</button>
+    </div>
+    <p id="result" class="big"></p>
+    <p id="score" class="big">Your total: 0 &middot; Opponent total: 0</p>
+  </div>
+
+  <div class="panel">
+    <h3>Last rounds</h3>
+    <table id="historyTable">
+      <thead>
+        <tr><th>#</th><th>You</th><th>Opponent</th><th>Your payoff</th><th>Opp payoff</th></tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+// ---------- Game parameters (payoffs) ----------
+// Using the standard Chicken ordering: 3 > 2 > 1 > -10.
+const PAYOFFS = {
+  // [your payoff, opponent payoff]
+  SWERVE_SWERVE: [2, 2],
+  SWERVE_STRAIGHT: [1, 3],
+  STRAIGHT_SWERVE: [3, 1],
+  STRAIGHT_STRAIGHT: [-10, -10],
+};
+
+// State
+let round = 0;
+let yourTotal = 0;
+let oppTotal = 0;
+let pStraight = 0.50; // opponent P(Straight). Default 50%
+
+// DOM
+const evStraightSpan = document.getElementById('evStraight');
+const evSwerveSpan   = document.getElementById('evSwerve');
+const bestReplySpan  = document.getElementById('bestReply');
+const pStraightInput = document.getElementById('pStraight');
+const applyPBtn      = document.getElementById('applyP');
+const btnSwerve      = document.getElementById('btnSwerve');
+const btnStraight    = document.getElementById('btnStraight');
+const btnReset       = document.getElementById('btnReset');
+const resultP        = document.getElementById('result');
+const scoreP         = document.getElementById('score');
+const historyBody    = document.getElementById('historyBody');
+
+// Utility: sample opponent move given pStraight
+function sampleOpponent(p) {
+  return Math.random() < p ? 'Straight' : 'Swerve';
+}
+
+// Compute expected payoffs given pStraight
+function updateExpectedDisplay() {
+  const p = pStraight;
+  // Math (explicit):
+  // E[You Straight]   = p*(-10) + (1-p)*3 = 3 - 13p
+  // E[You Swerve]     = p*(1)   + (1-p)*2 = 2 - p
+  const evStraight = 3 - 13 * p;
+  const evSwerve   = 2 - p;
+
+  evStraightSpan.textContent = evStraight.toFixed(2);
+  evSwerveSpan.textContent   = evSwerve.toFixed(2);
+
+  // Best reply with tie handling
+  let best = '';
+  if (Math.abs(evStraight - evSwerve) < 1e-9) {
+    best = 'Tie: either action is fine (indifferent).';
+  } else if (evStraight > evSwerve) {
+    best = 'Best reply: Straight';
+  } else {
+    best = 'Best reply: Swerve';
+  }
+  bestReplySpan.textContent = best;
+}
+
+function applyP() {
+  // clamp to [0,100]
+  let val = Number(pStraightInput.value);
+  if (!Number.isFinite(val)) val = 50;
+  val = Math.max(0, Math.min(100, val));
+  pStraightInput.value = val;
+  pStraight = val / 100;
+  updateExpectedDisplay();
+}
+
+function playRound(yourMove) {
+  const oppMove = sampleOpponent(pStraight);
+
+  // Determine payoff cell
+  let yp = 0, op = 0;
+  if (yourMove === 'Swerve' && oppMove === 'Swerve') [yp, op] = PAYOFFS.SWERVE_SWERVE;
+  if (yourMove === 'Swerve' && oppMove === 'Straight') [yp, op] = PAYOFFS.SWERVE_STRAIGHT;
+  if (yourMove === 'Straight' && oppMove === 'Swerve') [yp, op] = PAYOFFS.STRAIGHT_SWERVE;
+  if (yourMove === 'Straight' && oppMove === 'Straight') [yp, op] = PAYOFFS.STRAIGHT_STRAIGHT;
+
+  // Update totals
+  round += 1;
+  yourTotal += yp;
+  oppTotal += op;
+
+  // Render result
+  resultP.textContent = `Round ${round}: You chose ${yourMove}, opponent chose ${oppMove}. Payoffs → You: ${yp}, Opp: ${op}.`;
+  scoreP.textContent = `Your total: ${yourTotal} · Opponent total: ${oppTotal}`;
+
+  // Add to history (keep last ~20 rows)
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${round}</td><td>${yourMove}</td><td>${oppMove}</td><td>${yp}</td><td>${op}</td>`;
+  historyBody.prepend(tr);
+  while (historyBody.children.length > 20) historyBody.removeChild(historyBody.lastChild);
+}
+
+function resetGame() {
+  round = 0; yourTotal = 0; oppTotal = 0;
+  resultP.textContent = '';
+  scoreP.textContent = 'Your total: 0 · Opponent total: 0';
+  historyBody.innerHTML = '';
+}
+
+applyPBtn.addEventListener('click', applyP);
+btnSwerve.addEventListener('click', () => playRound('Swerve'));
+btnStraight.addEventListener('click', () => playRound('Straight'));
+btnReset.addEventListener('click', resetGame);
+
+// Initialize
+applyP(); // sets p and EV display
+</script>
+</body>
+</html>

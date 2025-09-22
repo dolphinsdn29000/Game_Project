@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Chicken Showdown</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./style.css" />
+  <script src="./game.js" defer></script>
+</head>
+<body>
+  <h1>Chicken Showdown</h1>
+
+  <p class="muted">
+    You choose <b>Swerve</b> or <b>Straight</b>. The opponent selects randomly each round.
+  </p>
+
+  <div class="panel">
+    <h3>Payoff matrix (you, opponent):</h3>
+    <div class="grid">
+      <div class="payoff"><b>You Swerve</b> vs <b>Opponent Swerve</b><br>→ <b>(2, 2)</b></div>
+      <div class="payoff"><b>You Swerve</b> vs <b>Opponent Straight</b><br>→ <b>(1, 3)</b></div>
+      <div class="payoff"><b>You Straight</b> vs <b>Opponent Swerve</b><br>→ <b>(3, 1)</b></div>
+      <div class="payoff"><b>You Straight</b> vs <b>Opponent Straight</b><br>→ <b>(-10, -10)</b></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <label for="pStraight">Opponent Straight probability (%):</label>
+      <input id="pStraight" type="number" min="0" max="100" value="50" />
+      <button id="applyP">Apply</button>
+      <span class="muted">Default = 50% Straight, 50% Swerve.</span>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <div class="big">Expected payoff if <u>You Straight</u>: <span id="evStraight">—</span></div>
+    </div>
+    <div class="row">
+      <div class="big">Expected payoff if <u>You Swerve</u>: <span id="evSwerve">—</span></div>
+    </div>
+    <div class="row">
+      <div class="muted" id="bestReply">Best reply: —</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <button id="btnSwerve">Choose: Swerve</button>
+      <button id="btnStraight">Choose: Straight</button>
+      <button id="btnReset" title="Clear scores and history">Reset</button>
+    </div>
+    <p id="result" class="big"></p>
+    <p id="score" class="big">Your total: 0 &middot; Opponent total: 0</p>
+  </div>
+
+  <div class="panel">
+    <h3>Last rounds</h3>
+    <table id="historyTable">
+      <thead>
+        <tr><th>#</th><th>You</th><th>Opponent</th><th>Your payoff</th><th>Opp payoff</th></tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+</body>
+</html>
