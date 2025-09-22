@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Labor vs Capital — Iterated Cobb–Douglas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./style.css" />
+  <script src="./game.js" defer></script>
+</head>
+<body>
+  <h1>Labor vs Capital — Iterated Cobb–Douglas</h1>
+  <p class="muted">
+    Each round: Labor and Capital choose how much to <b>invest</b> from current wealth (the rest is kept as an immediate payout). The invested parts feed a Cobb–Douglas production function. Labor proposes a split; for now Capital always accepts. Next round’s wealth equals kept cash plus the agreed share of output.
+  </p>
+
+  <!-- Game parameters -->
+  <div class="panel">
+    <h3>Parameters</h3>
+    <div class="row">
+      <label for="startLabor">Start Labor wealth:</label>
+      <input id="startLabor" type="number" min="0" step="1" value="100" />
+      <label for="startCapital">Start Capital wealth:</label>
+      <input id="startCapital" type="number" min="0" step="1" value="100" />
+      <label for="A">A (TFP):</label>
+      <input id="A" type="number" min="0" step="0.1" value="2" />
+      <label for="alpha">α (labor exponent):</label>
+      <input id="alpha" type="number" min="0.05" max="0.95" step="0.05" value="0.5" />
+      <button id="applyParams">Apply / Reset to start</button>
+    </div>
+    <p class="muted" style="margin-top:6px">
+      Tip: with A≈2 and symmetric investing, total wealth tends to be roughly stable. Larger A yields growth; smaller A yields decay.
+    </p>
+  </div>
+
+  <!-- Strategy controls -->
+  <div class="panel">
+    <h3>Round Controls</h3>
+    <div class="row">
+      <label for="laborInvestPct">Labor invest %:</label>
+      <input id="laborInvestPct" type="number" min="0" max="100" step="5" value="50" />
+      <label for="capitalInvestPct">Capital invest %:</label>
+      <input id="capitalInvestPct" type="number" min="0" max="100" step="5" value="50" />
+      <label for="laborSharePct">Labor’s offer (share of Y) %:</label>
+      <input id="laborSharePct" type="number" min="0" max="100" step="5" value="50" />
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="btnPlay">Play 1 round</button>
+      <button id="btnAuto5">Auto-play 5</button>
+      <button id="btnAuto20">Auto-play 20</button>
+      <button id="btnReset">Reset wealth & history</button>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="panel">
+    <h3>Status</h3>
+    <div class="kv">
+      <div><b>Round</b><br><span id="round">0</span></div>
+      <div><b>A · L^α · K^(1−α)</b><br><span id="lastY">—</span></div>
+      <div><b>Labor wealth</b><br><span id="laborWealth" class="big">—</span></div>
+      <div><b>Capital wealth</b><br><span id="capitalWealth" class="big">—</span></div>
+    </div>
+    <p class="muted" id="lastSummary" style="margin-top:8px"></p>
+  </div>
+
+  <!-- History -->
+  <div class="panel">
+    <h3>History</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>α</th>
+          <th>A</th>
+          <th>W<sub>L</sub>(start)</th>
+          <th>W<sub>C</sub>(start)</th>
+          <th>L invest</th>
+          <th>K invest</th>
+          <th>Y</th>
+          <th>Labor share</th>
+          <th>Payout L</th>
+          <th>Payout C</th>
+          <th>W<sub>L</sub>(end)</th>
+          <th>W<sub>C</sub>(end)</th>
+        </tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+</body>
+</html>
