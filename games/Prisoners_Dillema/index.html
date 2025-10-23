@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Prisoner’s Dilemma — Single Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./style.css" />
+  <script src="./game.js" defer></script>
+</head>
+<body>
+  <h1>Prisoner’s Dilemma — Single Player</h1>
+  <p class="muted">
+    You choose <b>Cooperate</b> or <b>Defect</b>. The opponent chooses randomly each round,
+    with a configurable probability of <b>Cooperate</b>.
+  </p>
+
+  <!-- Payoff matrix -->
+  <div class="panel">
+    <h3>Payoff matrix (you, opponent):</h3>
+    <div class="grid">
+      <div class="payoff"><b>You Cooperate</b> vs <b>Opponent Cooperate</b><br>→ <b>(3, 3)</b></div>
+      <div class="payoff"><b>You Cooperate</b> vs <b>Opponent Defect</b><br>→ <b>(0, 5)</b></div>
+      <div class="payoff"><b>You Defect</b> vs <b>Opponent Cooperate</b><br>→ <b>(5, 0)</b></div>
+      <div class="payoff"><b>You Defect</b> vs <b>Opponent Defect</b><br>→ <b>(1, 1)</b></div>
+    </div>
+    <p class="muted" style="margin-top:8px">
+      Canonical PD ordering: T=5 &gt; R=3 &gt; P=1 &gt; S=0 (Temptation &gt; Reward &gt; Punishment &gt; Sucker).
+    </p>
+  </div>
+
+  <!-- Opponent behavior (no EVs here) -->
+  <div class="panel">
+    <h3>Opponent behavior</h3>
+    <div class="row">
+      <label for="pCooperate">Opponent Cooperate probability (%):</label>
+      <input id="pCooperate" type="number" min="0" max="100" step="1" value="50" />
+      <button id="applyP">Apply</button>
+      <span class="muted">Default = 50% Cooperate, 50% Defect.</span>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="panel">
+    <div class="row">
+      <button id="btnCooperate">Choose: Cooperate</button>
+      <button id="btnDefect">Choose: Defect</button>
+      <button id="btnReset" title="Clear scores and history">Reset</button>
+    </div>
+    <p id="result" class="big"></p>
+    <p id="score" class="big">Your total: 0 &middot; Opponent total: 0</p>
+  </div>
+
+  <!-- History -->
+  <div class="panel">
+    <h3>Last rounds</h3>
+    <table>
+      <thead>
+        <tr><th>#</th><th>You</th><th>Opponent</th><th>Your payoff</th><th>Opp payoff</th></tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+</body>
+</html>

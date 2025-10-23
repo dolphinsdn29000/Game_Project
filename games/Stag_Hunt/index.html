@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Stag Hunt — Single Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./style.css" />
+  <script src="./game.js" defer></script>
+</head>
+<body>
+  <h1>Stag Hunt — Single Player</h1>
+  <p class="muted">
+    Two hunters must choose to hunt <b>Stag</b> or <b>Hare</b>. Stag pays the most but only if
+    you both choose Stag (you need each other). Hare is safer: it yields a smaller but reliable
+    return even if you pick different actions. This creates two coordination outcomes — a high‑pay
+    (Stag, Stag) that requires trust, and a safe (Hare, Hare).
+  </p>
+
+  <!-- Payoff matrix -->
+  <div class="panel">
+    <h3>Payoff matrix (you, opponent):</h3>
+    <div class="grid">
+      <div class="payoff"><b>You Stag</b> vs <b>Opp Stag</b><br>→ <b>(4, 4)</b></div>
+      <div class="payoff"><b>You Stag</b> vs <b>Opp Hare</b><br>→ <b>(0, 3)</b></div>
+      <div class="payoff"><b>You Hare</b> vs <b>Opp Stag</b><br>→ <b>(3, 0)</b></div>
+      <div class="payoff"><b>You Hare</b> vs <b>Opp Hare</b><br>→ <b>(2, 2)</b></div>
+    </div>
+    <p class="muted" style="margin-top:8px">
+      Canonical Stag Hunt ordering: 4 &gt; 3 &gt; 2 &gt; 0. (Stag, Stag) and (Hare, Hare) are both coordination equilibria.
+    </p>
+  </div>
+
+  <!-- Opponent behavior -->
+  <div class="panel">
+    <h3>Opponent behavior</h3>
+    <div class="row">
+      <label for="pStag">Opponent Stag probability (%):</label>
+      <input id="pStag" type="number" min="0" max="100" step="1" value="50" />
+      <button id="applyP">Apply</button>
+      <span class="muted">Default = 50% Stag, 50% Hare.</span>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="panel">
+    <div class="row">
+      <button id="btnStag">Choose: Stag</button>
+      <button id="btnHare">Choose: Hare</button>
+      <button id="btnReset" title="Clear scores and history">Reset</button>
+    </div>
+    <p id="result" class="big"></p>
+    <p id="score" class="big">Your total: 0 · Opponent total: 0</p>
+  </div>
+
+  <!-- History -->
+  <div class="panel">
+    <h3>Last rounds</h3>
+    <table>
+      <thead>
+        <tr><th>#</th><th>You</th><th>Opponent</th><th>Your payoff</th><th>Opp payoff</th></tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+</body>
+</html>

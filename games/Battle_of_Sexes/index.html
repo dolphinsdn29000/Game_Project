@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Battle of the Sexes — Single Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./style.css" />
+  <script src="./game.js" defer></script>
+</head>
+<body>
+  <h1>Battle of the Sexes — Single Player</h1>
+  <p class="muted">
+    You’re a guy who prefers the <b>Baseball</b> game; the girl prefers the <b>Opera</b>.
+    You both prefer being <b>together</b> over going to different events. This yields the classic
+    coordination game: (Baseball, Baseball) favors you; (Opera, Opera) favors her; any mismatch is worst for both.
+  </p>
+
+  <!-- Payoff matrix -->
+  <div class="panel">
+    <h3>Payoff matrix (you, opponent):</h3>
+    <div class="grid">
+      <div class="payoff"><b>You Baseball</b> vs <b>Opp Baseball</b><br>→ <b>(2, 1)</b></div>
+      <div class="payoff"><b>You Baseball</b> vs <b>Opp Opera</b><br>→ <b>(0, 0)</b></div>
+      <div class="payoff"><b>You Opera</b>   vs <b>Opp Baseball</b><br>→ <b>(0, 0)</b></div>
+      <div class="payoff"><b>You Opera</b>   vs <b>Opp Opera</b><br>→ <b>(1, 2)</b></div>
+    </div>
+    <p class="muted" style="margin-top:8px">
+      Canonical payoffs: coordination is better than miscoordination; each player prefers a different coordinated outcome.
+    </p>
+  </div>
+
+  <!-- Opponent behavior -->
+  <div class="panel">
+    <h3>Opponent behavior</h3>
+    <div class="row">
+      <label for="pOpera">Opponent Opera probability (%):</label>
+      <input id="pOpera" type="number" min="0" max="100" step="1" value="50" />
+      <button id="applyP">Apply</button>
+      <span class="muted">Default = 50% Opera, 50% Baseball (randomized each round).</span>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="panel">
+    <div class="row">
+      <button id="btnBaseball">Choose: Baseball</button>
+      <button id="btnOpera">Choose: Opera</button>
+      <button id="btnReset" title="Clear scores and history">Reset</button>
+    </div>
+    <p id="result" class="big"></p>
+    <p id="score" class="big">Your total: 0 &middot; Opponent total: 0</p>
+  </div>
+
+  <!-- History -->
+  <div class="panel">
+    <h3>Last rounds</h3>
+    <table>
+      <thead>
+        <tr><th>#</th><th>You</th><th>Opponent</th><th>Your payoff</th><th>Opp payoff</th></tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+</body>
+</html>
