@@ -1,137 +1,163 @@
-'use strict';
+(() => {
+  'use strict';
 
-// ---------- State ----------
-let round = 0;
-let WL = 100; // Labor wealth
-let WC = 100; // Capital wealth
+  // -------- Defaults (pre-set; shown only if user opens "Advanced") --------
+  const DEFAULTS = {
+    startWL: 100,      // Starting wealth: Labor
+    startWC: 100,      // Starting wealth: Capital
+    A: 2.0,            // Productivity
+    alpha: 0.5,        // Labor share in technology
+    capitalInvestPct: 50, // Capital invests 50% of its wealth each round by default
+    laborInvestPct: 50,   // Initial slider position only
+    laborSharePct: 50     // Initial slider position only
+  };
 
-// Parameters (Cobb–Douglas)
-let A = 2.0;
-let alpha = 0.5;
+  // -------- State --------
+  let round = 0;
+  let WL = DEFAULTS.startWL;
+  let WC = DEFAULTS.startWC;
 
-// ---------- DOM refs ----------
-const startLaborInput   = document.getElementById('startLabor');
-const startCapitalInput = document.getElementById('startCapital');
-const AInput            = document.getElementById('A');
-const alphaInput        = document.getElementById('alpha');
-const applyParamsBtn    = document.getElementById('applyParams');
+  let A = DEFAULTS.A;
+  let alpha = DEFAULTS.alpha;
+  let capitalInvestPct = DEFAULTS.capitalInvestPct;
 
-const laborInvestPctInput   = document.getElementById('laborInvestPct');
-const capitalInvestPctInput = document.getElementById('capitalInvestPct');
-const laborSharePctInput    = document.getElementById('laborSharePct');
+  // Keep track of the "current" starting values so Reset uses the last applied starts.
+  let startWL_current = DEFAULTS.startWL;
+  let startWC_current = DEFAULTS.startWC;
 
-const btnPlay   = document.getElementById('btnPlay');
-const btnAuto5  = document.getElementById('btnAuto5');
-const btnAuto20 = document.getElementById('btnAuto20');
-const btnReset  = document.getElementById('btnReset');
+  // -------- DOM helpers --------
+  const el = (id) => document.getElementById(id);
+  const roundEl = el('round');
+  const lastYEl = el('lastY');
+  const wlEl = el('wl');
+  const wcEl = el('wc');
 
-const roundSpan   = document.getElementById('round');
-const lastYSpan   = document.getElementById('lastY');
-const WLSpan      = document.getElementById('laborWealth');
-const WCSpan      = document.getElementById('capitalWealth');
-const lastSummary = document.getElementById('lastSummary');
-const historyBody = document.getElementById('historyBody');
+  const laborInvestRange = el('laborInvestPct');
+  const laborShareRange  = el('laborSharePct');
+  const laborInvestVal   = el('laborInvestPctVal');
+  const laborShareVal    = el('laborSharePctVal');
 
-// ---------- Utilities ----------
-const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
-const num = (el, fallback = 0) => {
-  const v = Number(el.value);
-  return Number.isFinite(v) ? v : fallback;
-};
-const fmt = (x) => Number(x).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const btnPlay1  = el('play1');
+  const btnAuto10 = el('auto10');
+  const btnReset  = el('reset');
+  const historyUL = el('history');
 
-function syncStatus(lastY = null, detailText = '') {
-  roundSpan.textContent = String(round);
-  WLSpan.textContent = fmt(WL);
-  WCSpan.textContent = fmt(WC);
-  lastYSpan.textContent = lastY == null ? '—' : fmt(lastY);
-  lastSummary.textContent = detailText;
-}
+  // Advanced controls
+  const startWLEl = el('startWL');
+  const startWCEl = el('startWC');
+  const AEl       = el('A');
+  const alphaEl   = el('alpha');
+  const capInvEl  = el('capitalInvestPct');
+  const applyBtn  = el('applyAndReset');
 
-function resetToParams() {
-  WL = clamp(num(startLaborInput, 100),   0, 1e9);
-  WC = clamp(num(startCapitalInput, 100), 0, 1e9);
-  A = clamp(num(AInput, 2), 0, 1e6);
-  alpha = clamp(num(alphaInput, 0.5), 0.001, 0.999);
-  round = 0;
-  historyBody.innerHTML = '';
+  // -------- Utils --------
+  const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+  const numOr = (v, d) => (Number.isFinite(v) ? v : d);
+  const fmt = (x) => Number(x).toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+  function syncStatus(y = null) {
+    roundEl.textContent = String(round);
+    lastYEl.textContent = y == null ? '—' : fmt(y);
+    wlEl.textContent = fmt(WL);
+    wcEl.textContent = fmt(WC);
+  }
+
+  function pushHistory({ r, lPct, sPct, y, wl, wc }) {
+    const li = document.createElement('li');
+    li.textContent =
+      `#${r} — L invest ${Math.round(lPct)}%, split ${Math.round(sPct)}%/` +
+      `${100 - Math.round(sPct)}% → Y ${fmt(y)} | WL ${fmt(wl)} | WC ${fmt(wc)}`;
+    historyUL.prepend(li);
+    // keep last 10
+    while (historyUL.children.length > 10) historyUL.removeChild(historyUL.lastChild);
+  }
+
+  function resetTo(startW, startC) {
+    round = 0;
+    WL = clamp(numOr(startW, DEFAULTS.startWL), 0, 1e12);
+    WC = clamp(numOr(startC, DEFAULTS.startWC), 0, 1e12);
+    historyUL.innerHTML = '';
+    syncStatus();
+  }
+
+  // Single round of play (mechanics)
+  function playOneRound() {
+    // Read UI strategies
+    const lPct = clamp(Number(laborInvestRange.value) || 0, 0, 100); // Labor invest %
+    const sPct = clamp(Number(laborShareRange.value)  || 0, 0, 100); // Labor share of Y
+    const kPct = clamp(Number(capitalInvestPct)       || 0, 0, 100); // Capital invest %
+
+    // Starting wealth this round
+    const WL0 = WL, WC0 = WC;
+
+    // Investments
+    const L = WL0 * (lPct / 100);
+    const K = WC0 * (kPct / 100);
+
+    // Cobb–Douglas output
+    // Ensure alpha is in (0,1) to avoid degenerate cases
+    const a = clamp(Number(alpha), 0.001, 0.999);
+    const Y = Number(A) * Math.pow(L, a) * Math.pow(K, 1 - a);
+
+    // Split (Capital always accepts in this version)
+    const payL = (sPct / 100) * Y;
+    const payC = Y - payL;
+
+    // Next-round wealth = kept cash + share of output
+    WL = (WL0 - L) + payL;
+    WC = (WC0 - K) + payC;
+
+    round += 1;
+    syncStatus(Y);
+    pushHistory({ r: round, lPct, sPct, y: Y, wl: WL, wc: WC });
+  }
+
+  function auto(n) {
+    for (let i = 0; i < n; i++) playOneRound();
+  }
+
+  // -------- Events --------
+  laborInvestRange.addEventListener('input', () => {
+    laborInvestVal.textContent = `${laborInvestRange.value}%`;
+  });
+  laborShareRange.addEventListener('input', () => {
+    laborShareVal.textContent = `${laborShareRange.value}%`;
+  });
+
+  btnPlay1.addEventListener('click', playOneRound);
+  btnAuto10.addEventListener('click', () => auto(10));
+  btnReset.addEventListener('click', () => resetTo(startWL_current, startWC_current));
+
+  applyBtn.addEventListener('click', () => {
+    // Read advanced inputs
+    const sWL = Number(startWLEl.value);
+    const sWC = Number(startWCEl.value);
+    const Anew = Number(AEl.value);
+    const anew = Number(alphaEl.value);
+    const knew = Number(capInvEl.value);
+
+    // Apply with clamps
+    startWL_current = clamp(numOr(sWL, DEFAULTS.startWL), 0, 1e12);
+    startWC_current = clamp(numOr(sWC, DEFAULTS.startWC), 0, 1e12);
+    A = clamp(numOr(Anew, DEFAULTS.A), 0, 1e9);
+    alpha = clamp(numOr(anew, DEFAULTS.alpha), 0.001, 0.999);
+    capitalInvestPct = clamp(numOr(knew, DEFAULTS.capitalInvestPct), 0, 100);
+
+    // Reset state to the new starts
+    resetTo(startWL_current, startWC_current);
+  });
+
+  // -------- Init (preset UI + status) --------
+  laborInvestRange.value = String(DEFAULTS.laborInvestPct);
+  laborShareRange.value  = String(DEFAULTS.laborSharePct);
+  laborInvestVal.textContent = `${DEFAULTS.laborInvestPct}%`;
+  laborShareVal.textContent  = `${DEFAULTS.laborSharePct}%`;
+
+  startWLEl.value = DEFAULTS.startWL;
+  startWCEl.value = DEFAULTS.startWC;
+  AEl.value       = DEFAULTS.A;
+  alphaEl.value   = DEFAULTS.alpha;
+  capInvEl.value  = DEFAULTS.capitalInvestPct;
+
   syncStatus();
-}
-
-function resetWealthOnly() {
-  WL = clamp(num(startLaborInput, 100),   0, 1e9);
-  WC = clamp(num(startCapitalInput, 100), 0, 1e9);
-  round = 0;
-  historyBody.innerHTML = '';
-  syncStatus();
-}
-
-function playOneRound() {
-  // Read strategies
-  const lPct = clamp(num(laborInvestPctInput, 50),   0, 100) / 100;   // Labor invest fraction
-  const kPct = clamp(num(capitalInvestPctInput, 50), 0, 100) / 100;   // Capital invest fraction
-  const sPct = clamp(num(laborSharePctInput, 50),    0, 100) / 100;   // Labor share of Y
-
-  // Starting wealth this round
-  const WL0 = WL;
-  const WC0 = WC;
-
-  // Investments
-  const L = WL0 * lPct;
-  const K = WC0 * kPct;
-
-  // Cobb–Douglas output
-  const Y = A * Math.pow(L, alpha) * Math.pow(K, 1 - alpha);
-
-  // Split (Capital always accepts in v1)
-  const payL = sPct * Y;
-  const payC = (1 - sPct) * Y;
-
-  // Next wealth = (kept cash) + share of output
-  const WL1 = (WL0 - L) + payL;
-  const WC1 = (WC0 - K) + payC;
-
-  // Commit state
-  round += 1;
-  WL = WL1;
-  WC = WC1;
-
-  // Render
-  const summary = `L invested ${fmt(L)}; C invested ${fmt(K)}; Y = ${fmt(Y)}; Labor took ${fmt(payL)} (${(sPct*100).toFixed(0)}%), Capital took ${fmt(payC)}.`;
-  syncStatus(Y, summary);
-
-  const tr = document.createElement('tr');
-  tr.innerHTML = [
-    `<td style="text-align:center">${round}</td>`,
-    `<td style="text-align:center">${alpha.toFixed(2)}</td>`,
-    `<td style="text-align:center">${fmt(A)}</td>`,
-    `<td>${fmt(WL0)}</td>`,
-    `<td>${fmt(WC0)}</td>`,
-    `<td>${fmt(L)}</td>`,
-    `<td>${fmt(K)}</td>`,
-    `<td>${fmt(Y)}</td>`,
-    `<td style="text-align:center">${(sPct*100).toFixed(0)}%</td>`,
-    `<td>${fmt(payL)}</td>`,
-    `<td>${fmt(payC)}</td>`,
-    `<td>${fmt(WL1)}</td>`,
-    `<td>${fmt(WC1)}</td>`
-  ].join('');
-  historyBody.prepend(tr);
-
-  // Keep last 100 rows to avoid DOM bloat
-  while (historyBody.children.length > 100) historyBody.removeChild(historyBody.lastChild);
-}
-
-function auto(n) {
-  for (let i = 0; i < n; i++) playOneRound();
-}
-
-// ---------- Events ----------
-applyParamsBtn.addEventListener('click', resetToParams);
-btnReset.addEventListener('click', resetWealthOnly);
-btnPlay.addEventListener('click', playOneRound);
-btnAuto5.addEventListener('click', () => auto(5));
-btnAuto20.addEventListener('click', () => auto(20));
-
-// ---------- Init ----------
-resetToParams();
+})();

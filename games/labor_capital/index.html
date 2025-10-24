@@ -2,91 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Labor vs Capital — Iterated Cobb–Douglas</title>
+  <title>Labor vs Capital — Simple Iterated Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./style.css" />
-  <script src="./game.js" defer></script>
+  <link href="style.css" rel="stylesheet" />
 </head>
 <body>
-  <h1>Labor vs Capital — Iterated Cobb–Douglas</h1>
-  <p class="muted">
-    Each round: Labor and Capital choose how much to <b>invest</b> from current wealth (the rest is kept as an immediate payout). The invested parts feed a Cobb–Douglas production function. Labor proposes a split; for now Capital always accepts. Next round’s wealth equals kept cash plus the agreed share of output.
-  </p>
+  <header class="head">
+    <h1>Labor vs Capital</h1>
+    <p class="muted">You are <b>Labor</b>. Each round, you choose how much to invest and what share of output to claim. Capital invests automatically. The rest of each side’s wealth (not invested) is kept immediately.</p>
+  </header>
 
-  <!-- Game parameters -->
-  <div class="panel">
-    <h3>Parameters</h3>
-    <div class="row">
-      <label for="startLabor">Start Labor wealth:</label>
-      <input id="startLabor" type="number" min="0" step="1" value="100" />
-      <label for="startCapital">Start Capital wealth:</label>
-      <input id="startCapital" type="number" min="0" step="1" value="100" />
-      <label for="A">A (TFP):</label>
-      <input id="A" type="number" min="0" step="0.1" value="2" />
-      <label for="alpha">α (labor exponent):</label>
-      <input id="alpha" type="number" min="0.05" max="0.95" step="0.05" value="0.5" />
-      <button id="applyParams">Apply / Reset to start</button>
-    </div>
-    <p class="muted" style="margin-top:6px">
-      Tip: with A≈2 and symmetric investing, total wealth tends to be roughly stable. Larger A yields growth; smaller A yields decay.
-    </p>
-  </div>
-
-  <!-- Strategy controls -->
-  <div class="panel">
-    <h3>Round Controls</h3>
-    <div class="row">
-      <label for="laborInvestPct">Labor invest %:</label>
-      <input id="laborInvestPct" type="number" min="0" max="100" step="5" value="50" />
-      <label for="capitalInvestPct">Capital invest %:</label>
-      <input id="capitalInvestPct" type="number" min="0" max="100" step="5" value="50" />
-      <label for="laborSharePct">Labor’s offer (share of Y) %:</label>
-      <input id="laborSharePct" type="number" min="0" max="100" step="5" value="50" />
-    </div>
-    <div class="row" style="margin-top:8px">
-      <button id="btnPlay">Play 1 round</button>
-      <button id="btnAuto5">Auto-play 5</button>
-      <button id="btnAuto20">Auto-play 20</button>
-      <button id="btnReset">Reset wealth & history</button>
-    </div>
-  </div>
+  <!-- Clear, slow explanation up front -->
+  <section class="panel">
+    <h2>How this works</h2>
+    <ol class="steps">
+      <li><b>You choose Labor invest %.</b> That fraction of your current wealth is invested; the rest is kept as cash.</li>
+      <li><b>Capital invests automatically.</b> By default, Capital invests <b>50%</b> of its wealth each round (changeable in Advanced settings).</li>
+      <li><b>Production:</b> The investments L and K go into Cobb–Douglas:
+        <code>Y = A · L^α · K^(1−α)</code>.
+      </li>
+      <li><b>You choose the split of Y.</b> If you choose <i>s</i>%, you get <i>s</i>% of Y and Capital gets (100−<i>s</i>)%.</li>
+      <li><b>Wealth updates:</b> Next round wealth is (kept cash) + (your share of output). Then repeat.</li>
+    </ol>
+    <details>
+      <summary><b>Math details (optional)</b></summary>
+      <p><code>Y = A · L^α · K^(1−α)</code>, with A≥0 and 0&lt;α&lt;1. If L=0 or K=0, then Y=0.</p>
+      <p>Wealth updates each round:
+        <br><code>W<sub>L</sub>' = (W<sub>L</sub> − L) + s·Y</code>,
+        <code>W<sub>C</sub>' = (W<sub>C</sub> − K) + (1−s)·Y</code>.
+      </p>
+    </details>
+  </section>
 
   <!-- Status -->
-  <div class="panel">
-    <h3>Status</h3>
-    <div class="kv">
+  <section class="panel">
+    <div class="status">
       <div><b>Round</b><br><span id="round">0</span></div>
-      <div><b>A · L^α · K^(1−α)</b><br><span id="lastY">—</span></div>
-      <div><b>Labor wealth</b><br><span id="laborWealth" class="big">—</span></div>
-      <div><b>Capital wealth</b><br><span id="capitalWealth" class="big">—</span></div>
+      <div><b>Last output (Y)</b><br><span id="lastY">—</span></div>
+      <div><b>Labor wealth</b><br><span id="wl">—</span></div>
+      <div><b>Capital wealth</b><br><span id="wc">—</span></div>
     </div>
-    <p class="muted" id="lastSummary" style="margin-top:8px"></p>
-  </div>
+  </section>
 
-  <!-- History -->
-  <div class="panel">
-    <h3>History</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>α</th>
-          <th>A</th>
-          <th>W<sub>L</sub>(start)</th>
-          <th>W<sub>C</sub>(start)</th>
-          <th>L invest</th>
-          <th>K invest</th>
-          <th>Y</th>
-          <th>Labor share</th>
-          <th>Payout L</th>
-          <th>Payout C</th>
-          <th>W<sub>L</sub>(end)</th>
-          <th>W<sub>C</sub>(end)</th>
-        </tr>
-      </thead>
-      <tbody id="historyBody"></tbody>
-    </table>
-  </div>
+  <!-- Minimal controls -->
+  <section class="panel">
+    <div class="control">
+      <label for="laborInvestPct">Labor invest %</label>
+      <input id="laborInvestPct" type="range" min="0" max="100" step="1" value="50" />
+      <span class="value" id="laborInvestPctVal">50%</span>
+    </div>
+
+    <div class="control">
+      <label for="laborSharePct">Labor’s offer (share of Y)</label>
+      <input id="laborSharePct" type="range" min="0" max="100" step="1" value="50" />
+      <span class="value" id="laborSharePctVal">50%</span>
+    </div>
+
+    <div class="buttons">
+      <button id="play1">Play 1 round</button>
+      <button id="auto10">Auto 10</button>
+      <button id="reset">Reset game</button>
+    </div>
+  </section>
+
+  <!-- Collapsible advanced parameters (hidden by default) -->
+  <details class="panel" id="advanced">
+    <summary>Advanced settings</summary>
+    <div class="grid">
+      <label>Start Labor wealth <input id="startWL" type="number" min="0" step="1" value="100"></label>
+      <label>Start Capital wealth <input id="startWC" type="number" min="0" step="1" value="100"></label>
+      <label>A (TFP) <input id="A" type="number" min="0" step="0.1" value="2"></label>
+      <label>α (labor exponent) <input id="alpha" type="number" min="0.05" max="0.95" step="0.05" value="0.5"></label>
+      <label>Capital invest % <input id="capitalInvestPct" type="number" min="0" max="100" step="1" value="50"></label>
+    </div>
+    <div class="buttons">
+      <button id="applyAndReset">Apply & Reset</button>
+    </div>
+    <p class="muted small">These are pre‑set and hidden so you can just play. Open only if you want to tune the model.</p>
+  </details>
+
+  <!-- Very simple history -->
+  <section class="panel">
+    <h3>History (last 10)</h3>
+    <ul id="history" class="history"></ul>
+  </section>
+
+  <script src="game.js"></script>
 </body>
 </html>
