@@ -25,6 +25,7 @@ const btnReset       = document.getElementById('btnReset');
 const resultP        = document.getElementById('result');
 const scoreP         = document.getElementById('score');
 const historyBody    = document.getElementById('historyBody');
+const outcomeEl      = document.getElementById('outcome');  // NEW: big banner
 
 // ---------- Helpers ----------
 function sampleOpponent(p) {
@@ -53,6 +54,19 @@ function updateExpectedDisplay() {
   bestReplySpan.textContent = best;
 }
 
+// NEW: show big outcome banner
+function showOutcome(text, mood, shake = false) {
+  if (!outcomeEl) return;
+  outcomeEl.className = '';          // clear previous classes
+  outcomeEl.textContent = text;
+  outcomeEl.classList.add('show');
+  if (mood) outcomeEl.classList.add(mood);   // 'success' | 'ok' | 'warn' | 'danger'
+  if (shake) {
+    outcomeEl.classList.add('shake');
+    setTimeout(() => outcomeEl.classList.remove('shake'), 450);
+  }
+}
+
 function applyP() {
   // clamp to [0,100]
   let val = Number(pStraightInput.value);
@@ -79,15 +93,33 @@ function playRound(yourMove) {
   yourTotal += yp;
   oppTotal += op;
 
-  // Render result
+  // Render small result + running totals
   resultP.textContent = `Round ${round}: You chose ${yourMove}, opponent chose ${oppMove}. Payoffs → You: ${yp}, Opp: ${op}.`;
   scoreP.textContent = `Your total: ${yourTotal} · Opponent total: ${oppTotal}`;
 
-  // Add to history (keep last ~20 rows)
+  // Render history (keep last ~20 rows)
   const tr = document.createElement('tr');
   tr.innerHTML = `<td>${round}</td><td>${yourMove}</td><td>${oppMove}</td><td>${yp}</td><td>${op}</td>`;
   historyBody.prepend(tr);
   while (historyBody.children.length > 20) historyBody.removeChild(historyBody.lastChild);
+
+  // --- NEW: Big visual outcome message ---
+  let message = '', mood = 'ok', shake = false;
+  if (yourMove === 'Straight' && oppMove === 'Straight') {
+    message = 'YOU CRASH!!!';
+    mood = 'danger';
+    shake = true;
+  } else if (yourMove === 'Straight' && oppMove === 'Swerve') {
+    message = 'YOU HELD YOUR NERVE — THEY SWERVED!';
+    mood = 'success';
+  } else if (yourMove === 'Swerve' && oppMove === 'Straight') {
+    message = 'YOU SWERVED — THEY WENT STRAIGHT.';
+    mood = 'warn';
+  } else { // Swerve/Swerve
+    message = 'BOTH SWERVED — SAFE.';
+    mood = 'ok';
+  }
+  showOutcome(message, mood, shake);
 }
 
 function resetGame() {
@@ -95,6 +127,12 @@ function resetGame() {
   resultP.textContent = '';
   scoreP.textContent = 'Your total: 0 · Opponent total: 0';
   historyBody.innerHTML = '';
+
+  // Clear banner
+  if (outcomeEl) {
+    outcomeEl.textContent = '';
+    outcomeEl.className = '';
+  }
 }
 
 // ---------- Wiring ----------

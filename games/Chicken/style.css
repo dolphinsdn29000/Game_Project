@@ -13,3 +13,38 @@ th, td { border: 1px solid #e5e5e5; padding: 8px; text-align: center; }
 #result { min-height: 1.4em; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .payoff { text-align: center; border: 1px dashed #ccc; border-radius: 6px; padding: 8px; }
+
+/* --- Outcome banner --- */
+#outcome {
+  display: none;               /* hidden until shown */
+  min-height: 2.5em;
+  text-align: center;
+  font-size: clamp(1.2rem, 4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin: 8px 0 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+#outcome.show { display: block; animation: pop 320ms ease-out; }
+
+#outcome.success { color: #0a6; background: #e8fff3; border: 2px solid #bdf0d2; }
+#outcome.ok      { color: #333; background: #f6f7f9; border: 2px solid #e4e7eb; }
+#outcome.warn    { color: #b26a00; background: #fff6e6; border: 2px solid #ffe0ad; }
+#outcome.danger  { color: #b00020; background: #ffe8ec; border: 2px solid #ffc9d2; }
+
+@keyframes pop {
+  0% { transform: scale(0.96); opacity: 0; }
+  60% { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.shake { animation: shake 400ms ease-in-out; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
